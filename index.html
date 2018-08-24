@@ -1,0 +1,338 @@
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Host-of-Troubles Vulnerabilities, leading to HTTP cache poisoning and Firewall bypass</title>
+    <script src="//cdn.bootcss.com/jquery/1.11.1/jquery.min.js"></script>
+    <script src="//cdn.bootcss.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+				
+    <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+
+    <style>
+        th {text-align: center;}
+        .maincontainer {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        body > .container {
+          padding: 60px 15px 0;
+        }
+        .container .text-muted {
+          margin: 20px 0;
+        }
+        .bs-docs-section {
+          margin-bottom: 60px;
+        }
+        .bs-docs-section:last-child {
+          margin-bottom: 0;
+        }
+        .target-fix {
+            position: relative;
+            top: -50px; /*偏移值*/
+            display: block;
+            height: 0;
+            /*overflow: hidden;*/
+        }
+        .footer {
+            margin: 1.5em 0;
+            padding-top: 1.5em;
+            border-top: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body  >
+    <nav class="navbar navbar-default navbar-fixed-top navbar-inverse" role="navigation">
+        <div class="container-fluid" style="max-width:960px;margin:0 auto" id="firstpage">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="#">Host of Troubles</a>
+            </div>
+            <!-- Collect the nav links, forms, and other content for toggling style="background:#4baad3;" -->
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="active"><a href="#overview" id="navoverview">Overview</a>
+                    </li>
+                    <li><a href="#mitigation" id="navmitigation">Mitigation</a>
+                    </li>
+                    <li><a href="#vendors" id="navvendors">Vendors</a>
+                    </li>
+                    <li class="dropdown">
+                      <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Attacks<span class="caret"></span></a>
+                      <ul class="dropdown-menu">
+                        <li><a id="navcachepoisoning" href="#cachepoisoning">HTTP cache poisoning</a></li>
+                        <li><a id="navfilterbypass" href="#filterbypass">Security policy bypass</a></li>
+                      </ul>
+                    </li>
+                    <li><a href="/online-checker.html">Online Checker</a>
+                    </li>
+                    <li><a href="#aboutus" id="navaboutus">About us</a>
+                    </li>
+                </ul>
+            </div>
+            <!-- /.navbar-collapse -->
+        </div>
+        <!-- /.container-fluid -->
+    </nav>
+
+    <div class="container" style="max-width:960px">
+        <div class="page-header">
+            <h1><strong>Host of Troubles</strong> Vulnerabilities</h1>
+        </div>
+        <div id="overview" class="bs-docs-section">
+            <div class="lead">
+                <p ><em>Host-of-Troubles</em> is a class of new vulnerabilities that affect a wide range of  HTTP implementations. The problem is that deployed systems are generally incorrect (non-compliant with RFC 7230) and inconsistent in parsing and interpreting “Host” headers in HTTP requests. This problem can be exploited by carefully crafting HTTP requests with ambiguous host information, inducing inconsistent interpretations between two parties. Such inconsistency can lead to severe security consequences, such as HTTP cache poisoning and security policy bypass. </p>
+                By issuring one single carefully crafted HTTP request, an attacker can:
+                <ul class="lead">
+                    <li>Poison the Squid cache of <em>any HTTP website</em> with arbitrary content. <a href="#squid-cache-poisoning">[Demo video]</a></li>
+                    <li>Poison Apache Traffic Server(ATS) cache for sites hosted on Akamai. <a href="#ats-cache-poisoning">[Demo video]</a></li>
+                    <li>Poison Akamai CDN caches when Squid resides behind Akamai.<a href="#akamai-cache-poisoning">[Demo video]</a></li>
+                    <li>Bypass Windows 8.1 filtering features. <a href="#bypass-win8">[Demo video]</a> </li>
+                    <li>Bypass cloud-based WAF without accessing the origin directly.<a href="http://www.icir.org/vern/papers/host-of-troubles.ccs16.pdf">[See our paper]</a></li>
+                    <li>...</li>
+                </ul>
+                <p class="lead">
+                    These attacks, especially the cache poisoning ones, have a significant impact in the current Internet because transparent cache proxies such as Squid and ATS are widely deployed by ISPs. We conducted large scale measurements of transparent caches on the Internet and discovered that around 97% of users served by such caches are subject to some of the cache-poisoning attacks we found.
+                </p>
+                <span class="label label-danger">Update</span> Our paper for ACM CCS 2016 is released! You can find more technical details <a href="http://www.icir.org/vern/papers/host-of-troubles.ccs16.pdf">here</a>.
+            </div>
+        </div>
+        <div id="mitigation" class="bs-docs-section">
+            <div class="page-header">
+                <h2>How to prevent these attacks?</h2>
+            </div>
+            <ul class="lead">
+                <li>Ideally, vendors including both downstream(such as proxies and firewalls) and upstream(such as CDNs and web servers), should fully comply with RFC 7230 to avoid problems caused by inconsistent interpretation of host to associate with an HTTP transaction. Per RFC 7230, the correct solution is to treat multiple Host headers and white-spaces around field-names as errors. </li>
+                <li>Websites can reduce the effects of vulnerable transparent caches by deploying HTTPS with preloaded HTTP Strict Transport Security (<a href="https://tools.ietf.org/html/rfc6797">HSTS</a>)[5].</li>
+                <li>We recommend that developers of any deployed system that processes HTTP requests with a notion of an associated host should review their implementations with this threat in mind.</li>
+                <li><span class="label label-primary">Update</span> We provide a  <a href="/online-checker.html">online checking tool</a> for you to automatically evaluate whether you are vulnerable to the cache poisoning attacks.</li>
+            </ul>
+        </div>
+        <div id="vendors" class="bs-docs-section">
+            <div class="page-header">
+                <h2>Thanks and Further coverage</h2>
+            </div>
+            <p class="lead">This problem affects a wide range of HTTP implementations, including web servers, proxies, firewalls and CDNs. After we reported it to CERT/CC and individual vendors, CERT/CC assigned a VU number (#916855) to track this problem, and vendors were actively addressing it.</p>
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Affected vendors</th>
+                        <th>Affected attacks</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Squid</td>
+                        <td>Cache poisoning</td>
+                        <td>Fixed, <a href="http://www.squid-cache.org/Advisories/SQUID-2016_7.txt">CVE-2016-4553</a>[3], <a href="http://www.squid-cache.org/Advisories/SQUID-2016_8.txt">CVE-2016-4554</a>[4]</td>
+                    </tr>
+                    <tr>
+                        <td>Apache Traffic Server</td>
+                        <td>Cache poisoning</td>
+                        <td>Confirmed</td>
+                    </tr>
+                    <tr>
+                        <td>Akamai CDN</td>
+                        <td>Cache poisoning</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>Tencent CDN</td>
+                        <td>Cache poisoning</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>Alibaba CDN</td>
+                        <td>Cache poisoning</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>Palo Alto Networks</td>
+                        <td>Firewall bypass</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>Huawei</td>
+                        <td>Firewall bypass</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>ESET</td>
+                        <td>Parental Control bypass</td>
+                        <td>Fixed</td>
+                    </tr>
+                    <tr>
+                        <td>CloudFlare</td>
+                        <td>WAF bypass</td>
+                        <td>Fixed</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+
+        <div id="attacks" class="bs-docs-section">
+            <div class="page-header">
+                <h2>How it works?</h2>
+            </div>
+            <div class="lead">
+                <h3 id="cachepoisoning" >1) HTTP cache poisoning</h3>
+                <p>We found two forms of HTTP cache poisoning attacks against shared, transparent caches, and one form against CDN cache.</p>
+                <a class="target-fix" id="squid-cache-poisoning"></a>
+                <p>a) General cache poisoning attack against transparent cache(Squid)</p>
+                <p>We have demonstrated this attack for Squid-3.5.12, enabling cache poisoning of any unencrypted HTTP website. The scenario requires an attacker who can send HTTP requests that pass through a shared transparent cache(Squid 3.5.12). Note that attackers can readily obtain the necessary vantage point using techniques such as web ads. Squid has fixed this problem after our report. (You can also watch all the videos on <a href="https://www.youtube.com/playlist?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA">Youtube</a>.)
+                </p>
+                <div class="embed-responsive embed-responsive-16by9">
+<!--                     <video class="embed-responsive-item" controls>
+                    <source src="squid3.5_cache_poison.mov">
+                        Your browser does not support the video tag.
+                    </video> -->
+                    <iframe width="854" height="480" src="https://www.youtube.com/embed/1qUtbICUYbQ?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+                </div>
+                <a class="target-fix" id="ats-cache-poisoning"></a>
+                <p>b) Exploiting co-hosting to launch attacks against transparent caches (Apache Traffic Server)</p>
+                <p>The second form exploits the situation where an attacker can obtain a web site hosted on the same server as a target web site, and the hosting server “cooperates” with a transparent cache to enable cache poisoning. Many co-hosting services such as Content Delivery Networks (CDNs) facilitate this attack. We have demonstrated this exploit on an Apache Traffic Server (ATS) 6.1.1, poisoning its cache of sites hosted on Akamai. </p>
+                <div class="embed-responsive embed-responsive-16by9">
+<!--                     <video class="embed-responsive-item" controls>
+                    <source src="ats6_poison.mov">
+                        Your browser does not support the video tag.
+                    </video> -->
+                    <iframe width="854" height="480" src="https://www.youtube.com/embed/FwYG_LYzB7w?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+                </div> 
+                <a class="target-fix" id="akamai-cache-poisoning"></a>
+                <p>c) Exploiting co-hosting to launch attacks against Akamai CDN caches</p>
+                <p>The attack is different with the second form. It poisons Akamai CDN cache when a Squid proxy resides between Akamai CDN and victim's origin server. We have demonstrated this exploit on Akamai CDN. Akamai has fixed this problem after our report.</p>
+                <div class="embed-responsive embed-responsive-16by9">
+<!--                     <video class="embed-responsive-item" controls>
+                    <source src="Akamai_squid.mov">
+                        Your browser does not support the video tag.
+                    </video> -->
+                    <iframe width="854" height="480" src="https://www.youtube.com/embed/fBJyhmfB7Hw?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+                </div>
+                <h3 id="filterbypass">2) Filter bypass</h3>
+                Attackers can also use Host of Troubles vulnerabilities to evade network controls provided by firewalls. 
+                <a class="target-fix" id="bypass-win8"></a>
+                <p>a) Bypass parental control features of Windows 8.1</p>
+                <p>We have demonstrated this attack by bypassing the Parental Control of Windows 8.1, a host-based firewall, by issuing the following request, which is sent to a server for “block.com”:</p>
+                <pre><code>GET http://www.allow.com/ HTTP/1.1
+Host: www.block.com</code></pre>
+
+                <div class="embed-responsive embed-responsive-16by9">
+<!--                     <video class="embed-responsive-item" controls>
+                    <source src="windows_cnn_bypass.mov">
+                        Your browser does not support the video tag.
+                    </video> -->
+                    <iframe width="854" height="480" src="https://www.youtube.com/embed/SxKjRe8KYfA?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA" frameborder="0" gesture="media" allow="encrypted-media" allowfullscreen></iframe>
+                </div>
+                Apart from host-based firewalls, the evasion techniques can also be used to bypass network-based firewalls.
+            </div>
+        </div>
+
+        <div id="aboutus" class="bs-docs-section">
+            <div class="page-header">
+                <h2>Who is behind this research?</h2>
+            </div>
+            <p class="lead">We are researchers from Tsinghua University, UC Berkeley, ICSI and Huawei Canada, including <a href="https://sites.google.com/site/whucjj/">Jianjun Chen</a>, <a href="https://scholar.google.com/citations?user=h6UtQvcAAAAJ&hl=en">Jian Jiang</a>, <a href="http://netsec.ccert.edu.cn/duanhx/?page_id=2&lang=en">Haixin Duan</a>, <a href="http://www1.icsi.berkeley.edu/~nweaver/">Nicholas Weaver</a>, <a href="https://scholar.google.com/citations?user=ut4WktUAAAAJ&hl=en">Tao Wan</a>, and <a href="http://www.icir.org/vern/">Vern Paxson</a>.
+            </p>
+        </div>
+        <div id="QandA" class="bs-docs-section">
+            <div class="page-header">
+                <h2>Q&A</h2>
+            </div>
+            <div>
+                <a class="target-fix" id="affect-https"></a>
+                <h3>Does Host-of-Troubles affect HTTPS websites?</h3>
+                <p class="lead">Yes. The attacks not only affect HTTP websites, but also HTTPS websites: (a) Cache poisoning attacks against CDN caches can affect HTTPS websites whenever HTTPS connections terminate at CDN nodes. The attacks bypassing CDN security protections also apply to HTTPS websites. (b) Deploying HTTPS with preloaded HSTS can mitigate the threat of cache poisoning attack that targets transparent caches. Previous research [1], however, shows that the support and adoption of HSTS in the real world is still quite deficient.</p>
+
+                <h3>Can disabling Flash mitigate the cache poisoning attacks?</h3>
+                <p class="lead">No. The attacks do not require the use of Flash. An attacker can use other tools to poison a transparent cache if the attacker shares the cache with the victim. Given that transparent caches deployed by ISPs are typically shared by large groups of users, attacks launched from one such system under the attacker’s control suffices to affect all other users sharing that node’s transparent cache. In addition, some forms of the attacks, such as cache poisoning of CDN caches, can be launched from any client. </p>
+
+                <h3>Is Host-of-Troubles attacks same with HTTP request sumggling(HRS) attacks[2]?</h3>
+                <p class="lead">No. Host-of-Troubles attacks differ from request smuggling in that our attacks exploit discrepancies in the host definition of one request to create host confusion, while request smuggling takes advantage of implementation differences in Content-Length to induce inconsistencies in request-response association. Our study shows that the defenses against request smuggling attacks do not help prevent Host of Troubles attacks. In fact, some vendors expressed concerns that the use of whitespace in Host of Troubles attacks may also apply to Content-Length manipulation to re-enable request smuggling attacks.
+                </p>
+            </div>
+        </div>
+        <div class="bs-docs-section">
+            <div class="page-header">
+                <h3>References</h3>
+            </div>
+            <div class="lead">
+                <p class="lead">[1] Michael Kranch, and Joseph Bonneau. "Upgrading HTTPS in mid-air: An empirical study of strict transport security and key pinning." In NDSS 2015.</p>
+                <p class="lead">[2] Chaim Linhart, Amit Klein, Ronen Heled and Steve Orrin. <a href="http://www.cgisecurity.com/lib/HTTP-Request-Smuggling.pdf">"HTTP Request Smuggling"</a>.</p>
+                <p class="lead">[3] Team, S. Squid Proxy Cache Security Update Advisory SQUID-2016:7. <a href="http://www.squid-cache. org/Advisories/SQUID-2016 7.txt">"http://www.squid-cache. org/Advisories/SQUID-2016 7.txt"</a>.</p>
+                <p class="lead">[4] Team, S. Squid Proxy Cache Security Update Advisory SQUID-2016:8. <a href="http://www.squid-cache. org/Advisories/SQUID-2016 8.txt">"http://www.squid-cache. org/Advisories/SQUID-2016 8.txt"</a>.</p>
+                <p class="lead">[5] Hodges, J., Jackson, C., and Barth, A. HTTP Strict Transport Security (HSTS). RFC 6797 (Proposed Standard), Nov. 2012.</p>
+                [6] Demo videos hosted on Youtube. <a href="https://www.youtube.com/playlist?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA">https://www.youtube.com/playlist?list=PL--A-gWJV1dLlPzVXBOIaeBWv4BZCU7zA</a>
+                <p>
+                
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <center>@2016-Jianjun Chen, Jian Jiang, Haixin Duan, Nick Weaver, Tao Wan, Vern Paxson</center><br>
+    </div>
+    <script>
+        $body = (window.opera) ? (document.compatMode == "CSS1Compat" ? $('html') : $('body')) : $('html,body'); // 这行是 Opera 的补丁, 少了它 Opera 是直接用跳的而且画面闪烁 by willin
+        $('#navoverview').click(function() {
+            $body.animate({
+                scrollTop: -($('#overview').offset().top)
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+        $('#navmitigation').click(function() {
+            $body.animate({
+                scrollTop: $('#mitigation').offset().top - 50
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+
+        $('#navvendors').click(function() {
+            $body.animate({
+                scrollTop: $('#vendors').offset().top - 50
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+
+        $('#navaboutus').click(function() {
+            $body.animate({
+                scrollTop: $('#aboutus').offset().top - 50
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+        $('#navcachepoisoning').click(function() {
+            $body.animate({
+                scrollTop: $('#cachepoisoning').offset().top - 50
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+        $('#navfilterbypass').click(function() {
+            $body.animate({
+                scrollTop: $('#filterbypass').offset().top - 50
+            }, 1000);
+            return false; // 返回false可以避免在原链接后加上#
+        });
+    </script>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-82459636-1', 'auto');
+        ga('send', 'pageview');
+
+    </script>
+    <script>
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "//hm.baidu.com/hm.js?4c2618cf64b7b624e48407fa5214c7ec";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+
+</body>
+
+</html>
+
