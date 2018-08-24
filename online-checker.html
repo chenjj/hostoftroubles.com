@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="zh-CN" xml:lang="zh-CN">
+    <head>
+        <title>Host of Troubles Online Checker</title>
+        <script src="//cdn.bootcss.com/jquery/1.11.1/jquery.min.js"></script>
+        <script src="//cdn.bootcss.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="//cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+        <style>
+            th {text-align: center;}
+            .maincontainer {
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            body > .container {
+              padding: 50px 15px 0px;
+            }
+            .container .text-muted {
+              margin: 20px 0;
+            }
+            .bs-docs-section {
+              margin-bottom: 60px;
+            }
+            .bs-docs-section:last-child {
+              margin-bottom: 0;
+            }
+            .target-fix {
+                position: relative;
+                top: -50px; /*偏移值*/
+                display: block;
+                height: 0;
+                overflow: hidden;
+            }
+            .footer {
+                margin: 1.5em 0;
+                padding-top: 1.5em;
+                border-top: 1px solid #ccc;
+            }
+        </style>        
+         <script language="JavaScript">
+            var jsReady = false;
+            var poisoned = new Array(20);
+            for (var i = poisoned.length - 1; i >= 0; i--) {
+                poisoned[i] = -1;
+            };
+            var interval_timer=null;
+            var cache_found=-1;
+            var poison_found=-1;
+            var poison_found_percentage=0;
+
+            function flashChecker() {
+                var hasFlash = 0; 
+                var flashVersion = 0; 
+                if (document.all) {
+                  var swf = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
+                  if (swf) {
+                    hasFlash = 1;
+                    VSwf = swf.GetVariable("$version");
+                    flashVersion = parseInt(VSwf.split(" ")[1].split(",")[0]);
+                  }
+                } else {
+                  if (navigator.plugins && navigator.plugins.length > 0) {
+                    var swf = navigator.plugins["Shockwave Flash"];
+                    if (swf) {
+                      hasFlash = 1;
+                      var words = swf.description.split(" ");
+                      for (var i = 0; i < words.length; ++i) {
+                        if (isNaN(parseInt(words[i]))) continue;
+                        flashVersion = parseInt(words[i]);
+                      }
+                    }
+                  }
+                }
+                return { f: hasFlash, v: flashVersion };
+              }
+            function thisMovie(movieName){  
+                var isIE = navigator.appName.indexOf("Microsoft") != -1;  
+                return (isIE) ? window[movieName] : document.getElementById(movieName);      
+            }
+            function stoploop(){
+                clearInterval(interval_timer);
+                $('#testprogress').css('width', '100%').attr('aria-valuenow', 100);
+                if(poison_found == -1){
+                        $('#poisoned').html('<div class="alert alert-success" role="alert">Good news! No vulnerable transparent cache found!</div>')
+                    }
+                if(cache_found== -1){
+                    $('#cache_found').html('<div class="alert alert-info" role="alert">No transparent cache found!</div>')
+                }
+                $('#progressinfo').html('All the tests have finished.');
+                $('#starttest').button("complete")
+            }
+            function check_poisoned () {
+                for (var i = poisoned.length - 1; i >= 0; i--) {
+                    if(poisoned[i]==-1){
+                        poisoned[i] = thisMovie("flashObject").get_poisoned(i);
+                        if(poisoned[i] != -1){
+                            poison_found_percentage = poison_found_percentage + 100/poisoned.length;
+                            if(poison_found_percentage > parseFloat($('#testprogress').attr('aria-valuenow'))){
+                                $('#testprogress').css('width', poison_found_percentage+'%').attr('aria-valuenow', poison_found_percentage);
+                            }
+                            $('#progressinfo').html('Test case'+i+' completes.');
+                            if(poison_found == -1 && poisoned[i] == 1){
+                                poison_found =1;
+                                $('#poisoned').html('<div class="alert alert-danger" role="alert">Bad news! Found vulnerable transparent caches in your network!</div>');
+                            }
+                        }
+                    }
+                };
+                
+                if( cache_found == -1){
+                    cache_found = thisMovie("flashObject").get_cached();
+                    if (cache_found == 1){
+                        $('#cache_found').html('<div class="alert alert-info" role="alert">Found transparent cache!</div>')
+                    }
+                }
+
+                if(parseFloat($('#testprogress').attr('aria-valuenow')) <=80){
+                    var valeur = thisMovie("flashObject").get_percentage();
+                    $('#testprogress').css('width', valeur+'%').attr('aria-valuenow', valeur);                   
+                }
+                if(parseFloat($('#testprogress').attr('aria-valuenow')) >=100){
+                    stoploop();
+                }
+            }
+
+            function start_test(value) {
+                if(parseFloat($('#testprogress').attr('aria-valuenow')) >=100){
+                    return;
+                }
+                thisMovie("flashObject").mystart();
+
+                interval_timer= setInterval("check_poisoned()", 200)
+                var loop_timer = setTimeout("stoploop()",30000);
+                $('#starttest').button("loading");
+                $('#progressinfo').html('Testing, please wait for a while...');
+            }
+        </script>
+    </head>
+
+    <body >
+        <nav class="navbar navbar-fixed-top navbar-inverse" role="navigation">
+            <div class="container-fluid" style="max-width:960px;margin:0 auto" id="firstpage">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="/index.html">Host of Troubles</a>
+                </div>
+            </div>
+            <!-- /.container-fluid -->
+        </nav>        
+        <object id="flashObject"  name="flashObject" 
+          type="application/x-shockwave-flash" data="jSocket.swf" width="0" height="0">
+            <param name="movie" value="jSocket.swf"/>
+            <param name="quality" value="high"/>
+            <param name="allowscriptaccess" value="always"/>
+        </object>
+        <div class="container" style="max-width:960px">
+            <div class="page-header">
+                <h1><strong>Host of Troubles</strong> Online Checker</h1>
+                <p style="font-size:20px">Are you vulnerable to cache poisoning attack?</p>
+            </div>
+            <div id="description">
+                <p class="lead">Among the Host of Troubles attacks we found, cache poisoning attacks that target transparent caches are the most serious threat against current Internet (<a href="/index.html#attacks">See demos</a>). Our measurement study shows that around 97% of users served by a transparent cache are subject to the attacks.</p>
+                <p class="lead">With this online checker, we provide a tool for you to automatically evaluate whether you are vulnerable to the cache poisoning attacks. To complete this online test, you need to make sure Flash is enabled in your browser.</p>
+
+            </div>
+            <div id="tests">
+                <div class="page-header"><h1>Test your network</h1></div>
+                <div id="flashsupport">Testing</div>
+                <div class="progress">
+                  <div  id="testprogress" class="progress-bar  active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                  </div>
+                </div>
+                <div id="progressinfo"><p></p></div>
+                <center><button id="starttest" type="button" class="btn btn-primary btn-lg" data-loading-text="Testing..." data-complete-text="Finished!" onclick="start_test()">Start Test</button></center>
+            </div>
+            <div id="results">
+                <div class="page-header"><h1>Test results</h1></div>                
+                <div id="cache_found">Please click the button to start test</div>
+                <div id="poisoned"></div>
+                <div id="debug"></div>
+            </div>
+            <div id="QandA">
+                <div class="page-header"><h1>Q&A</h1></div>
+                <div class="lead">
+                    <h2>What should I do if a vulnerable transparent cache is detected?</h2>
+                    <p class="lead"><strong><em>If you are a client user...</em></strong><br>Contact your Internet Service Provider(ISP) immediately, and ask them to fix it.<br><strong><em>If you are a ISP operator or developer...</em></strong><br>Upgrade the transparent cache software to comply RFC7230.<a href="/index.html#mitigation">[Detail mitigation]</a></p>
+                    <p class="lead"></p>
+                </div>
+            </div>
+        </div>
+    <div class="footer">
+        <center>@2016-Jianjun Chen, Jian Jiang, Haixin Duan, Nick Weaver, Tao Wan, Vern Paxson</center><br>
+    </div>
+    <script type="text/javascript">
+        var fls = flashChecker();
+        var s = "";
+        if (fls.f){
+            $('#flashsupport').html('<div class="alert alert-info" role="alert">Your browser supports Flash! You can test your network now!</div>');
+        }else{
+            $('#flashsupport').html('<div class="alert alert-warning" role="alert">Unable to run tests on your browser, as it does not support Flash!</div>');
+        }
+    </script>
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-82459636-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+    <script>
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "//hm.baidu.com/hm.js?4c2618cf64b7b624e48407fa5214c7ec";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+    </body>
+</html>
